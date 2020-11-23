@@ -1,8 +1,13 @@
 # Responsive images
 
-## Requirements
+## Requirements - macOS
 ```bash
 brew install imagemagick jpegoptim pngquant webp
+```
+
+## Requirements - Linux
+```bash
+sudo apt install imagemagick jpegoptim pngquant webp
 ```
 
 ## Usage

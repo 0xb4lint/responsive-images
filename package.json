@@ -1,7 +1,15 @@
 {
   "name": "responsive-images",
   "displayName": "Responsive images",
-  "version": "0.0.3",
+  "description": "@2x -> @1x, WebP (@2x, @1x), LQIP",
+  "keywords": [
+    "webp",
+    "lqip",
+    "retina",
+    "responsive",
+    "image"
+  ],
+  "version": "0.0.4",
   "publisher": "0xb4lint",
   "repository": {
 		"type": "git",
