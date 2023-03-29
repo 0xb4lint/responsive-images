@@ -5,7 +5,8 @@ const cp = require('child_process');
 
 const execOptions = {
 	env: {
-		path: '/opt/homebrew/bin/:/usr/local/bin:/usr/bin:/bin',
+		shell: '/bin/bash',
+		path: '/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
 	},
 };
 
