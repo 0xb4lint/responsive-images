@@ -9,7 +9,7 @@
     "responsive",
     "image"
   ],
-  "version": "0.0.4",
+  "version": "1.0.0",
   "publisher": "0xb4lint",
   "repository": {
 		"type": "git",
@@ -49,7 +49,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@types/node": "^12.11.7",
+    "@types/node": "^18",
     "@types/vscode": "^1.51.0",
     "eslint": "^7.9.0"
   }

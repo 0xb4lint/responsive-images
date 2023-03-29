@@ -3,6 +3,12 @@ const path = require('path');
 const fs = require('fs');
 const cp = require('child_process');
 
+const execOptions = {
+	env: {
+		path: '/opt/homebrew/bin/:/usr/local/bin:/usr/bin:/bin',
+	},
+};
+
 const optimizeJpg = (filePath, quality) => {
 	const options = [
 		'-m' + quality, // set maximum quality to 85%
@@ -15,7 +21,7 @@ const optimizeJpg = (filePath, quality) => {
 	console.log(command);
 
 	try {
-		cp.execSync(command);
+		cp.execSync(command, execOptions);
 	} catch (err) {
 		console.error(err.stderr.toString());
 		vscode.window.showErrorMessage(err.stderr.toString());
@@ -34,7 +40,7 @@ const optimizePng = (filePath) => {
 	console.log(command);
 
 	try {
-		cp.execSync(command);
+		cp.execSync(command, execOptions);
 	} catch (err) {
 		console.error(err.stderr.toString());
 		vscode.window.showErrorMessage(err.stderr.toString());
@@ -58,7 +64,7 @@ const optimizeConvertWebp = (input, output, quality, width) => {
 	console.log(command);
 
 	try {
-		cp.execSync(command);
+		cp.execSync(command, execOptions);
 	} catch (err) {
 		console.error(err.stderr.toString());
 		vscode.window.showErrorMessage(err.stderr.toString());
@@ -71,7 +77,7 @@ const covertFromWebp = (input, output) => {
 	console.log(command);
 
 	try {
-		cp.execSync(command);
+		cp.execSync(command, execOptions);
 	} catch (err) {
 		console.error(err.stderr.toString());
 		vscode.window.showErrorMessage(err.stderr.toString());
@@ -84,7 +90,7 @@ const resize = (input, output, width) => {
 	console.log(command);
 
 	try {
-		cp.execSync(command);
+		cp.execSync(command, execOptions);
 	} catch (err) {
 		console.error(err.stderr.toString());
 		vscode.window.showErrorMessage(err.stderr.toString());
@@ -97,7 +103,7 @@ const lqip = (input, output) => {
 	console.log(command);
 
 	try {
-		cp.execSync(command);
+		cp.execSync(command, execOptions);
 	} catch (err) {
 		console.error(err.stderr.toString());
 		vscode.window.showErrorMessage(err.stderr.toString());
@@ -110,7 +116,7 @@ const getWidth = (input) => {
 	console.log(command);
 
 	try {
-		return cp.execSync(command);
+		return cp.execSync(command, execOptions);
 	} catch (err) {
 		console.error(err.stderr.toString());
 		vscode.window.showErrorMessage(err.stderr.toString());
@@ -225,7 +231,7 @@ const activate = (context) => {
 						optimizeJpg(output1xJpg, quality);
 						files[output1xJpg] = fs.statSync(output1xJpg).size;
 
-						// 1x webp convert and optimize webp
+						// 1x webp convert and optimize
 						optimizeConvertWebp(input, output1xWebp, quality, width / 2);
 						files[output1xWebp] = fs.statSync(output1xWebp).size;
 
