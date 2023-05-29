@@ -71,6 +71,23 @@ const optimizeConvertWebp = (input, output, quality, width) => {
 	}
 };
 
+const convertAvif = (input, output, width) => {
+	const options = [];
+
+	if (width) {
+		options.push('-resize ' + width + ' 0');
+	}
+
+	const command = 'convert ' + options.join(' ') + ' ' + input + ' ' + output;
+
+	try {
+		cp.execSync(command, execOptions);
+	} catch (err) {
+		console.error(err.stderr.toString());
+		vscode.window.showErrorMessage(err.stderr.toString());
+	}
+}
+
 const covertFromWebp = (input, output) => {
 	const command = 'dwebp ' + input + ' -o - | convert - ' + output;
 
@@ -97,8 +114,8 @@ const resize = (input, output, width) => {
 	}
 };
 
-const lqip = (input, output) => {
-	const command = 'convert ' + input + ' -resize 64x -blur 0x2 -quality 10 ' + output;
+const lqip = (input, output, resize = 64) => {
+	const command = 'convert ' + input + ' -resize ' + resize + 'x -blur 0x2 -quality 10 ' + output;
 
 	console.log(command);
 
@@ -125,148 +142,210 @@ const getWidth = (input) => {
 	}
 };
 
+const selectLQIPType = async () => {
+	return await vscode.window.showQuickPick(['jpg', 'webp', 'avif'], {
+		placeHolder: 'Select lqip format',
+	});
+}
+
+const generateImages = (uri, quality, type) => {
+	const input = uri.fsPath;
+	const files = {};
+
+	files[input] = fs.statSync(input).size;
+
+	const filename = path.basename(input);
+	const extension = path.extname(filename);
+
+	const response = [];
+	response.push(filename);
+	response.push('Filesize: ' + Math.floor(files[input] / 1024) + 'kB');
+
+	const lqipType = type ? type : 'jpg';
+	quality = parseInt(quality);
+	const { lqipSize, avifSupport } = vscode.workspace.getConfiguration('responsive-images');
+
+	const lqipResize = lqipSize ? lqipSize : (lqipType !== 'jpg' ? 32 : 64);
+
+	if (quality > 0 && quality <= 100) {
+		response.push('Target quality: ' + quality + '%');
+
+		let width = getWidth(input).toString();
+		console.log('width', width);
+
+		width = parseInt(width);
+
+		if (width > 0) {
+			response.push('2x width: ' + width + 'px');
+
+			if (extension === '.jpg') {
+				const output1xJpg = input.replace(/@2x.jpg$/, '.jpg');
+				const output2xWebp = input.replace(/.jpg$/, '.webp');
+				const output1xWebp = input.replace(/@2x.jpg$/, '.webp');
+				const outputLqip = input.replace(/@2x.jpg$/, '@lqip.jpg');
+
+				// 2x webp convert and optimize
+				optimizeConvertWebp(input, output2xWebp, quality);
+				files[output2xWebp] = fs.statSync(output2xWebp).size;
+
+				// 1x jpg resize and optimize
+				resize(input, output1xJpg, width / 2);
+				optimizeJpg(output1xJpg, quality);
+				files[output1xJpg] = fs.statSync(output1xJpg).size;
+
+				// 1x webp convert and optimize
+				optimizeConvertWebp(input, output1xWebp, quality, width / 2);
+				files[output1xWebp] = fs.statSync(output1xWebp).size;
+
+				// lqip jpg resize
+				lqip(input, outputLqip);
+				files[outputLqip] = fs.statSync(outputLqip).size;
+
+				// original optimize
+				optimizeJpg(input, quality);
+				files[input] = fs.statSync(input).size;
+
+			} else if (extension === '.png') {
+				const output1xPng = input.replace(/@2x.png$/, '.png');
+				const output2xWebp = input.replace(/.png$/, '.webp');
+				const output1xWebp = input.replace(/@2x.png$/, '.webp');
+				const outputLqip = input.replace(/@2x.png$/, `@lqip.${lqipType}`);
+
+				// 2x webp convert and optimize
+				optimizeConvertWebp(input, output2xWebp, quality);
+				files[output2xWebp] = fs.statSync(output2xWebp).size;
+
+				if (avifSupport) {
+					const output2xAvif = input.replace(/.png$/, '.avif');
+					const output1xAvif = input.replace(/@2x.png$/, '.avif');
+					// Avif 1x
+					convertAvif(input, output1xAvif, width / 2);
+					files[output1xAvif] = fs.statSync(output1xAvif).size;
+
+					// Avif 2x
+					convertAvif(input, output2xAvif);
+					files[output2xAvif] = fs.statSync(output2xAvif).size;
+				}
+
+				// 1x png resize and optimize
+				resize(input, output1xPng, width / 2);
+				optimizePng(output1xPng);
+				files[output1xPng] = fs.statSync(output1xPng).size;
+
+				// 1x webp convert and optimize
+				optimizeConvertWebp(input, output1xWebp, quality, width / 2);
+				files[output1xWebp] = fs.statSync(output1xWebp).size;
+
+				// lqip jpg resize
+				lqip(input, outputLqip, lqipResize);
+				files[outputLqip] = fs.statSync(outputLqip).size;
+
+				// original optimize
+				optimizePng(input);
+				files[input] = fs.statSync(input).size;
+
+			} else if (extension === '.webp') {
+				const output2xJpg = input.replace(/.webp$/, '.jpg');
+				const output1xJpg = input.replace(/@2x.webp$/, '.jpg');
+				const output1xWebp = input.replace(/@2x.webp$/, '.webp');
+				const outputLqip = input.replace(/@2x.webp$/, `@lqip.${lqipType}`);
+
+				// 2x jpg convert and optimize
+				covertFromWebp(input, output2xJpg);
+				optimizeJpg(output2xJpg, quality);
+				files[output2xJpg] = fs.statSync(output2xJpg).size;
+
+				if (avifSupport) {
+					const output2xAvif = input.replace(/.webp$/, '.avif');
+					const output1xAvif = input.replace(/@2x.webp$/, '.avif');
+					// Avif 1x
+					convertAvif(input, output1xAvif, width / 2);
+					files[output1xAvif] = fs.statSync(output1xAvif).size;
+
+					// Avif 2x
+					convertAvif(input, output2xAvif);
+					files[output2xAvif] = fs.statSync(output2xAvif).size;
+				}
+
+				// 1x jpg resize and optimize
+				resize(output2xJpg, output1xJpg, width / 2);
+				optimizeJpg(output1xJpg, quality);
+				files[output1xJpg] = fs.statSync(output1xJpg).size;
+
+				// 1x webp convert and optimize
+				optimizeConvertWebp(input, output1xWebp, quality, width / 2);
+				files[output1xWebp] = fs.statSync(output1xWebp).size;
+
+				// lqip jpg resize
+				lqip(output2xJpg, outputLqip, lqipResize);
+
+				files[outputLqip] = fs.statSync(outputLqip).size;
+
+				// original optimize
+				optimizeConvertWebp(input, input, quality);
+				files[input] = fs.statSync(input).size;
+			}
+
+			response.push('');
+
+			for (const file in files) {
+				response.push(
+					path.basename(file) + ': ' +
+					(files[file] > 1024 ? Math.floor(files[file] / 1024) + 'kB' : files[file] + 'B')
+				);
+			}
+
+			vscode.window.showInformationMessage(response.join('\n'), { modal: true });
+		} else {
+			vscode.window.showErrorMessage('Invalid image width');
+		}
+	} else {
+		vscode.window.showErrorMessage('Invalid quality value');
+	}
+}
+
 /**
  * @param {vscode.ExtensionContext} context
  */
 const activate = (context) => {
 	let disposable = vscode.commands.registerCommand('responsive-images.generateFrom2x', (uri) => {
-		const input = uri.fsPath;
-		const files = {};
+		const { quality, lqipType } = vscode.workspace.getConfiguration('responsive-images');
 
-		files[input] = fs.statSync(input).size;
+		if (quality && lqipType) {
+			generateImages(uri, quality, lqipType);
+		}
 
-		const filename = path.basename(input);
-		const extension = path.extname(filename);
+		if (!quality && lqipType) {
+			vscode.window.showInputBox({
+				prompt: 'Quality',
+				value: 90,
+			}).then((quality) => {
+				generateImages(uri, quality, lqipType);
+			})
+		}
 
-		const response = [];
-		response.push(filename);
-		response.push('Filesize: ' + Math.floor(files[input] / 1024) + 'kB');
+		if (quality && !lqipType) {
+			selectLQIPType().then((type) => {
+				generateImages(uri, quality, type);
+			});
+		}
 
-		vscode.window.showInputBox({
-			prompt: 'Quality',
-			value: 90,
-		}).then((quality) => {
-			console.log('quality', quality);
-
-			quality = parseInt(quality);
-
-			if (quality > 0 && quality <= 100) {
-				response.push('Target quality: ' + quality + '%');
-
-				let width = getWidth(input).toString();
-				console.log('width', width);
-
-				width = parseInt(width);
-
-				if (width > 0) {
-					response.push('2x width: ' + width + 'px');
-
-					if (extension === '.jpg') {
-						const output1xJpg = input.replace(/@2x.jpg$/, '.jpg');
-						const output2xWebp = input.replace(/.jpg$/, '.webp');
-						const output1xWebp = input.replace(/@2x.jpg$/, '.webp');
-						const outputLqip = input.replace(/@2x.jpg$/, '@lqip.jpg');
-
-						// 2x webp convert and optimize
-						optimizeConvertWebp(input, output2xWebp, quality);
-						files[output2xWebp] = fs.statSync(output2xWebp).size;
-
-						// 1x jpg resize and optimize
-						resize(input, output1xJpg, width / 2);
-						optimizeJpg(output1xJpg, quality);
-						files[output1xJpg] = fs.statSync(output1xJpg).size;
-
-						// 1x webp convert and optimize
-						optimizeConvertWebp(input, output1xWebp, quality, width / 2);
-						files[output1xWebp] = fs.statSync(output1xWebp).size;
-
-						// lqip jpg resize
-						lqip(input, outputLqip);
-						files[outputLqip] = fs.statSync(outputLqip).size;
-
-						// original optimize
-						optimizeJpg(input, quality);
-						files[input] = fs.statSync(input).size;
-
-					} else if (extension === '.png') {
-						const output1xPng = input.replace(/@2x.png$/, '.png');
-						const output2xWebp = input.replace(/.png$/, '.webp');
-						const output1xWebp = input.replace(/@2x.png$/, '.webp');
-						const outputLqip = input.replace(/@2x.png$/, '@lqip.jpg');
-
-						// 2x webp convert and optimize
-						optimizeConvertWebp(input, output2xWebp, quality);
-						files[output2xWebp] = fs.statSync(output2xWebp).size;
-
-						// 1x png resize and optimize
-						resize(input, output1xPng, width / 2);
-						optimizePng(output1xPng);
-						files[output1xPng] = fs.statSync(output1xPng).size;
-
-						// 1x webp convert and optimize
-						optimizeConvertWebp(input, output1xWebp, quality, width / 2);
-						files[output1xWebp] = fs.statSync(output1xWebp).size;
-
-						// lqip jpg resize
-						lqip(input, outputLqip);
-						files[outputLqip] = fs.statSync(outputLqip).size;
-
-						// original optimize
-						optimizePng(input);
-						files[input] = fs.statSync(input).size;
-
-					} else if (extension === '.webp') {
-						const output2xJpg = input.replace(/.webp$/, '.jpg');
-						const output1xJpg = input.replace(/@2x.webp$/, '.jpg');
-						const output1xWebp = input.replace(/@2x.webp$/, '.webp');
-						const outputLqip = input.replace(/@2x.webp$/, '@lqip.jpg');
-
-						// 2x jpg convert and optimize
-						covertFromWebp(input, output2xJpg);
-						optimizeJpg(output2xJpg, quality);
-						files[output2xJpg] = fs.statSync(output2xJpg).size;
-
-						// 1x jpg resize and optimize
-						resize(output2xJpg, output1xJpg, width / 2);
-						optimizeJpg(output1xJpg, quality);
-						files[output1xJpg] = fs.statSync(output1xJpg).size;
-
-						// 1x webp convert and optimize
-						optimizeConvertWebp(input, output1xWebp, quality, width / 2);
-						files[output1xWebp] = fs.statSync(output1xWebp).size;
-
-						// lqip jpg resize
-						lqip(output2xJpg, outputLqip);
-						files[outputLqip] = fs.statSync(outputLqip).size;
-
-						// original optimize
-						optimizeConvertWebp(input, input, quality);
-						files[input] = fs.statSync(input).size;
-					}
-
-					response.push('');
-
-					for (const file in files) {
-						response.push(
-							path.basename(file) + ': ' +
-							(files[file] > 1024 ? Math.floor(files[file] / 1024) + 'kB' : files[file] + 'B')
-						);
-					}
-
-					vscode.window.showInformationMessage(response.join('\n'), { modal: true });
-				} else {
-					vscode.window.showErrorMessage('Invalid image width');
-				}
-			} else {
-				vscode.window.showErrorMessage('Invalid quality value');
-			}
-		});
+		if (!quality && !lqipType) {
+			vscode.window.showInputBox({
+				prompt: 'Quality',
+				value: 90,
+			}).then((quality) => {
+				selectLQIPType().then((type) => {
+					generateImages(uri, quality, type);
+				})
+			});
+		}
 	});
 
 	context.subscriptions.push(disposable);
 }
 
-const deactivate = () => {};
+const deactivate = () => { };
 
 module.exports = {
 	activate,

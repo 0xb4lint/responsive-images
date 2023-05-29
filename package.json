@@ -23,6 +23,31 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "configuration": {
+        "title": "Responsive Images",
+        "properties": {
+            "responsive-images.quality": {
+                "type": ["number", "null"],
+                "default": null,
+                "description": "Set optimization quality (default 90)"
+            },
+            "responsive-images.lqipSize": {
+                "type": ["number", "null"],
+                "default": null,
+                "description": "Set lqip size (default is 64)"
+            },
+            "responsive-images.lqipType": {
+                "type": ["string"],
+                "default": null,
+                "description": "Set lqip type [jpg, webp, avif] (default jpg)"
+            },
+            "responsive-images.avifSupport": {
+                "type": "boolean",
+                "default": false,
+                "description": "Enable avif convert"
+            }
+        }
+    },
     "commands": [
       {
         "command": "responsive-images.generateFrom2x",
