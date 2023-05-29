@@ -188,6 +188,18 @@ const generateImages = (uri, quality, type) => {
 				optimizeConvertWebp(input, output2xWebp, quality);
 				files[output2xWebp] = fs.statSync(output2xWebp).size;
 
+				if (avifSupport) {
+					const output2xAvif = input.replace(/.jpg$/, '.avif');
+					const output1xAvif = input.replace(/@2x.jpg$/, '.avif');
+					// Avif 1x
+					convertAvif(input, output1xAvif, width / 2);
+					files[output1xAvif] = fs.statSync(output1xAvif).size;
+
+					// Avif 2x
+					convertAvif(input, output2xAvif);
+					files[output2xAvif] = fs.statSync(output2xAvif).size;
+				}
+
 				// 1x jpg resize and optimize
 				resize(input, output1xJpg, width / 2);
 				optimizeJpg(output1xJpg, quality);
