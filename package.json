@@ -37,7 +37,8 @@
                 "description": "Set lqip size (default is 64)"
             },
             "responsive-images.lqipType": {
-                "type": ["string"],
+                "type": ["string", null],
+                "enum": ["jpg", "webp", "avif"],
                 "default": null,
                 "description": "Set lqip type [jpg, webp, avif] (default jpg)"
             },
