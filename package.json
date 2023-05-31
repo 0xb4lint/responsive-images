@@ -39,7 +39,7 @@
             "responsive-images.lqipType": {
                 "type": ["string", null],
                 "enum": ["jpg", "webp", "avif"],
-                "default": null,
+                "default": "webp",
                 "description": "Set lqip type [jpg, webp, avif] (default jpg)"
             },
             "responsive-images.avifSupport": {

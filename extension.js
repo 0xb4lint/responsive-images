@@ -115,7 +115,7 @@ const resize = (input, output, width) => {
 };
 
 const lqip = (input, output, resize = 64) => {
-	const command = 'convert ' + input + ' -resize ' + resize + 'x -blur 0x2 -quality 10 ' + output;
+	const command = 'convert ' + input + ' -adaptive-resize ' + resize + 'x -define webp:target-size=1024 -define webp:mode=6 -define webp:preprocessing=2 ' + output;
 
 	console.log(command);
 
@@ -165,7 +165,7 @@ const generateImages = (uri, quality, type) => {
 	quality = parseInt(quality);
 	const { lqipSize, avifSupport } = vscode.workspace.getConfiguration('responsive-images');
 
-	const lqipResize = lqipSize ? lqipSize : (lqipType !== 'jpg' ? 32 : 64);
+	const lqipResize = lqipSize || 64;
 
 	if (quality > 0 && quality <= 100) {
 		response.push('Target quality: ' + quality + '%');
@@ -307,7 +307,7 @@ const generateImages = (uri, quality, type) => {
 				);
 			}
 
-			vscode.window.showInformationMessage(response.join('\n'), { modal: true });
+			vscode.window.showInformationMessage(response.join('\n'), { modal: false });
 		} else {
 			vscode.window.showErrorMessage('Invalid image width');
 		}
