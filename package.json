@@ -9,7 +9,7 @@
     "responsive",
     "image"
   ],
-  "version": "1.0.2",
+  "version": "1.1.0",
   "publisher": "0xb4lint",
   "repository": {
 		"type": "git",
@@ -18,9 +18,6 @@
   "engines": {
     "vscode": "^1.51.0"
   },
-  "activationEvents": [
-    "onCommand:responsive-images.generateFrom2x"
-  ],
   "main": "./extension.js",
   "contributes": {
     "configuration": {
